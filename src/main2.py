@@ -82,11 +82,13 @@ class MyApp:
     def load_excel(self):
         """Load Latitude and Longitude from an Excel file"""
         file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
+        self.filedir = file_path
         if not file_path:
             return  
 
         try:
-            df = pd.read_excel(file_path)
+            df = pd.read_excel(file_path, skiprows=1)
+            
             if "Latitude" in df.columns and "Longitude" in df.columns:
                 self.lat_entry.delete(0, tk.END)
                 self.lon_entry.delete(0, tk.END)
@@ -103,7 +105,7 @@ class MyApp:
         self.selector_label = ttk.Label(self.main_frame, text="Select Data Type:")
         self.selector_label.grid(row=1, column=0, padx=5, pady=10, sticky="w")
 
-        self.options = ["Irradiación Solar", "Option 2", "Option 3"]
+        self.options = ["Irradiación Solar", "Eolico"]
         self.selector = ttk.Combobox(self.main_frame, values=self.options, state="readonly")
         self.selector.grid(row=1, column=1, padx=5, pady=10, sticky="ew")
         self.selector.set(self.options[0])
@@ -135,44 +137,94 @@ class MyApp:
             lat = float(self.lat_entry.get())
             lon = float(self.lon_entry.get())
             option = self.selector.get()
+            input_mode = self.input_mode.get()  # Get the selected input mode
 
             self.progress_label.grid(row=4, column=0, columnspan=2, pady=5)
             self.progress.grid(row=5, column=0, columnspan=2, pady=5)
             self.progress.start()
 
-            processing_thread = threading.Thread(target=self.process_data, args=(lat, lon, option), daemon=True)
+            processing_thread = threading.Thread(target=self.process_data, args=(lat, lon, option, input_mode), daemon=True)
             processing_thread.start()
 
         except ValueError:
             self.stop_progress()
             messagebox.showerror("Invalid Input", "Please enter valid numeric values.")
 
-    def process_data(self, lat, lon, option):
+    def process_data(self, lat, lon, option, mode):
         """ Process the data in a background thread """
         try:
+            fig = None
             # Call the real data handler function to process inputs
-            result, df = process_inputs(lat, lon, option)
-            GHI_values = df.iloc[0, :12].tolist()
-            print(GHI_values)
-            #######################
-            # Graficos 
-            #######################
-            bins = GHI_values
-            Meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 
-                        'nov', 'dic']
-            print(bins)
-            fig, ax = plt.subplots(figsize=(4, 3))  # Create Matplotlib figure
-            ax.bar(Meses, bins, color='#4F81BC', width=0.8, edgecolor='black', label='Frecuencia Observada')
-            ax.set_title('Irradiacion GHI')
-            ax.set_ylabel('[kWh/m2]')
-            ax.grid(True)
-            plt.tight_layout()
-            plt.savefig('Irradiacion GHI.jpg')
-            
+            if self.input_mode.get()=="excel":
+                print(self.filedir)
+                result, df = process_inputs(lat, lon, option, mode, file=self.filedir)
+            else:
+                result, df = process_inputs(lat, lon, option, mode, file="")
+
+            if option=="Irradiación Solar":
+                for i in range(0,df.shape[0]):
+                    #######################
+                    # Graficos GHI
+                    ####################### 
+                    GHI_values = df.iloc[i, :12].tolist()
+                    bins = GHI_values
+                    Meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 
+                                'nov', 'dic']
+                    fig, ax = plt.subplots(figsize=(4, 3))  # Create Matplotlib figure
+                    ax.bar(Meses, bins, color='#4F81BC', width=0.8, edgecolor='black', label='Frecuencia Observada')
+                    ax.set_title('Irradiacion GHI')
+                    ax.set_ylabel('[kWh/m2]')
+                    ax.grid(True)
+                    plt.tight_layout()
+                    plt.savefig(str(i+1)+'-Irradiacion GHI.jpg')
+                    #######################
+                    # Graficos DNI
+                    #######################
+                    DNI_values = df.iloc[i, 12:24].tolist()
+                    bins = DNI_values
+                    Meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 
+                                'nov', 'dic']
+                    fig, ax = plt.subplots(figsize=(4, 3))  # Create Matplotlib figure
+                    ax.bar(Meses, bins, color='#4F81BC', width=0.8, edgecolor='black', label='Frecuencia Observada')
+                    ax.set_title('Irradiacion DNI')
+                    ax.set_ylabel('[kWh/m2]')
+                    ax.grid(True)
+                    plt.tight_layout()
+                    plt.savefig(str(i+1)+'-Irradiacion DNI.jpg')      
+                    #######################
+                    # Graficos DIF
+                    #######################
+                    DIF_values = df.iloc[i, 24:36].tolist()
+                    bins = DIF_values
+                    Meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 
+                                'nov', 'dic']
+                    fig, ax = plt.subplots(figsize=(4, 3))  # Create Matplotlib figure
+                    ax.bar(Meses, bins, color='#4F81BC', width=0.8, edgecolor='black', label='Frecuencia Observada')
+                    ax.set_title('Irradiacion DIF')
+                    ax.set_ylabel('[kWh/m2]')
+                    ax.grid(True)
+                    plt.tight_layout()
+                    plt.savefig(str(i+1)+'-Irradiacion DIF.jpg')  
+                    #######################
+                    # Graficos TEMP
+                    #######################
+                    TEMP_values = df.iloc[i, 36:48].tolist()
+                    bins = TEMP_values
+                    Meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 
+                                'nov', 'dic']
+                    fig, ax = plt.subplots(figsize=(4, 3))  # Create Matplotlib figure
+                    ax.bar(Meses, bins, color='#4F81BC', width=0.8, edgecolor='black', label='Frecuencia Observada')
+                    ax.set_title('Temperatura en grados celcius')
+                    ax.set_ylabel('Grados celcius')
+                    ax.grid(True)
+                    plt.tight_layout()
+                    plt.savefig(str(i+1)+'-Temperatura.jpg')  
+
             # Stop the progress bar and hide it after processing
             self.root.after(0, self.stop_progress)  # Update GUI from the main thread
             # Update the GUI with the plot
-            self.root.after(0, self.display_plot, fig)
+            if self.input_mode.get()!="excel":
+                self.root.after(0, self.display_plot, fig)
             # Show the result to the user
             self.root.after(0, self.show_result, result)  # Update GUI from the main thread
         except Exception as e:
