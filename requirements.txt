@@ -1,0 +1,8 @@
+rasterio
+sv-ttk
+pandas
+pyproj
+pyogrio
+geopandas
+openpyxl
+matplotlib
